@@ -1,8 +1,10 @@
 # Adapted from https://github.com/pytorch/vision/blob/v0.4.0/torchvision/models/resnet.py
+import math
 from tensorflow import keras
 from tensorflow.keras import layers
 
 kaiming_normal = keras.initializers.VarianceScaling(scale=2.0, mode='fan_out', distribution='untruncated_normal')
+kaiming_uniform = keras.initializers.VarianceScaling(scale=(1.0 / 3), mode='fan_in', distribution='uniform')
 
 def conv3x3(x, out_planes, stride=1, name=None):
     x = layers.ZeroPadding2D(padding=1, name=f'{name}_pad')(x)
@@ -62,12 +64,15 @@ def resnet18(x, **kwargs):
 
 def fcn(x, num_output_channels=1):
     x = resnet18(x, name='resnet18')
-    x = layers.Conv2D(filters=128, kernel_size=1, name='conv1')(x)
+    x = layers.Conv2D(filters=128, kernel_size=1, kernel_initializer=kaiming_uniform,
+            bias_initializer=keras.initializers.RandomUniform(minval=-math.sqrt(1.0 / 512), maxval=math.sqrt(1.0 / 512)), name='conv1')(x)
     x = layers.BatchNormalization(momentum=0.9, epsilon=1e-5, name='bn1')(x)
     x = layers.ReLU(name='relu1')(x)
     x = layers.UpSampling2D(interpolation='bilinear', name='up1')(x)
-    x = layers.Conv2D(filters=32, kernel_size=1, name='conv2')(x)
+    x = layers.Conv2D(filters=32, kernel_size=1, kernel_initializer=kaiming_uniform,
+            bias_initializer=keras.initializers.RandomUniform(minval=-math.sqrt(1.0 / 128), maxval=math.sqrt(1.0 / 128)), name='conv2')(x)
     x = layers.BatchNormalization(momentum=0.9, epsilon=1e-5, name='bn2')(x)
     x = layers.ReLU(name='relu2')(x)
     x = layers.UpSampling2D(interpolation='bilinear', name='up2')(x)
-    return layers.Conv2D(filters=num_output_channels, kernel_size=1, name='conv3')(x)
+    return layers.Conv2D(filters=num_output_channels, kernel_size=1, kernel_initializer=kaiming_uniform,
+            bias_initializer=keras.initializers.RandomUniform(minval=-math.sqrt(1.0 / 32), maxval=math.sqrt(1.0 / 32)), name='conv3')(x)
